@@ -32,6 +32,16 @@ from helper_func import subscribed, encode, decode, get_messages, get_shortlink,
 from database.database import add_user, del_user, full_userbase, present_user
 from shortzy import Shortzy
 
+# Function to auto-delete messages after a delay and send confirmation
+async def delete_after_delay(message: Message, delay):
+    await asyncio.sleep(delay)
+    try:
+        await message.delete()
+        await message.reply("✅ This File was Successfully Deletes. ")
+    except:
+        pass  # In case message is already deleted or something goes wrong 
+
+
 @Bot.on_message(filters.command('start') & filters.private & subscribed)
 async def start_command(client: Client, message: Message):
     id = message.from_user.id
@@ -111,13 +121,18 @@ async def start_command(client: Client, message: Message):
                     reply_markup = None
 
                 try:
-                    await msg.copy(chat_id=message.from_user.id, caption=caption, parse_mode=ParseMode.HTML, reply_markup=reply_markup, protect_content=PROTECT_CONTENT)
+                    copied_msg = await msg.copy(chat_id=message.from_user.id, caption=caption, parse_mode=ParseMode.HTML, reply_markup=reply_markup, protect_content=PROTECT_CONTENT)
                     await asyncio.sleep(0.5)
+                    if copied_msg:
+                                asyncio.create_task(delete_after_delay(copied_msg, 1800))  # Delete after 30 minutes                    
                 except FloodWait as e:
                     await asyncio.sleep(e.x)
-                    await msg.copy(chat_id=message.from_user.id, caption=caption, parse_mode=ParseMode.HTML, reply_markup=reply_markup, protect_content=PROTECT_CONTENT)
+                    copied_msg = await msg.copy(chat_id=message.from_user.id, caption=caption, parse_mode=ParseMode.HTML, reply_markup=reply_markup, protect_content=PROTECT_CONTENT)
+                    if copied_msg:
+                                asyncio.create_task(delete_after_delay(copied_msg, 1800))  # Delete after 30 minutes
                 except:
                     pass
+            await copied_msg.reply("⚠️ Please Note :\n\nThis File will be Automatically Deleted after 30 Minutes. ⏳")
 
         elif verify_status['is_verified']:
             reply_markup = InlineKeyboardMarkup(
